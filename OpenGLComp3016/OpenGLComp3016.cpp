@@ -1,6 +1,8 @@
-// OpenGLComp3016.cpp : This file contains the 'main' function. Program execution begins and ends there.
-//
-
+#include <GL/glew.h>
+#include <GLFW/glfw3.h>
+#include <SDL.h>
+#include <glm/glm.hpp>
+#include <glm/gtc/matrix_transform.hpp>
 #include <iostream>
 
 int main()
