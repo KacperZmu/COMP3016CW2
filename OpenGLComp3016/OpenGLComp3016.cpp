@@ -1,22 +1,293 @@
 #include <GL/glew.h>
 #include <GLFW/glfw3.h>
-#include <SDL.h>
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
+#include <glm/gtc/type_ptr.hpp>
+#include <assimp/scene.h>
+#include <assimp/Importer.hpp>
+#include <assimp/postprocess.h>
+#include <cmath>
 #include <iostream>
 
-int main()
-{
-    std::cout << "Hello World!\n";
+using namespace std;
+
+double lastX = 400.0;
+double lastY = 300.0;
+float yaw = 0.0f;
+float pitch = 0.0f;
+
+glm::vec3 cameraPos = glm::vec3(0.0f, 0.0f, 3.0f);
+glm::vec3 cameraFront = glm::vec3(0.0f, 0.0f, -1.0f);
+glm::vec3 cameraUp = glm::vec3(0.0f, 1.0f, 0.0f);
+
+GLfloat vertices[] = {
+    // Base
+   -0.5f, -0.5f, -0.5f, 1.0f, 0.0f, 1.0f,  // Bottom left
+    0.5f, -0.5f, -0.5f, 1.0f, 0.0f, 1.0f,   // Bottom right
+    0.5f, -0.5f,  0.5f, 1.0f, 0.0f, 1.0f, // Top right
+
+   -0.5f, -0.5f, -0.5f, 1.0f, 0.0f, 1.0f, // Bottom left
+    0.5f, -0.5f,  0.5f, 1.0f, 0.0f, 1.0f, // Top right
+   -0.5f, -0.5f,  0.5f, 1.0f, 0.0f, 1.0f, // Top left
+
+   // Faces
+   0.0f,  0.5f,  0.0f, 1.0f, 0.0f, 1.0f, // Apex
+  -0.5f, -0.5f,  0.5f, 1.0f, 0.0f, 1.0f, // Top left of the base
+   0.5f, -0.5f,  0.5f, 1.0f, 0.0f, 1.0f, // Top right of the base
+
+   0.0f,  0.5f,  0.0f, 1.0f, 0.0f, 1.0f, // Apex
+   0.5f, -0.5f,  0.5f, 1.0f, 0.0f, 1.0f, // Top right of the base
+   0.5f, -0.5f, -0.5f, 1.0f, 0.0f, 1.0f, // Bottom right of the base
+
+   0.0f,  0.5f,  0.0f, 1.0f, 0.0f, 1.0f, // Apex
+   0.5f, -0.5f, -0.5f, 1.0f, 0.0f, 1.0f, // Bottom right of the base
+  -0.5f, -0.5f, -0.5f, 1.0f, 0.0f, 1.0f, // Bottom left of the base
+
+   0.0f,  0.5f,  0.0f, 1.0f, 0.0f, 1.0f, // Apex
+  -0.5f, -0.5f, -0.5f, 1.0f, 0.0f, 1.0f, // Bottom left of the base
+  -0.5f, -0.5f,  0.5f, 1.0f, 0.0f, 1.0f, // Top left of the base
+
+  // Connecting faces (sides of the pyramid)
+  -0.5f, -0.5f,  0.5f, 1.0f, 0.0f, 1.0f, // Top left of the base
+   0.5f, -0.5f,  0.5f, 1.0f, 0.0f, 1.0f, // Top right of the base
+   0.0f,  0.5f,  0.0f, 1.0f, 0.0f, 1.0f, // Apex
+
+   0.5f, -0.5f,  0.5f, 1.0f, 0.0f, 1.0f, // Top right of the base
+   0.5f, -0.5f, -0.5f, 1.0f, 0.0f, 1.0f, // Bottom right of the base
+   0.0f,  0.5f,  0.0f, 1.0f, 0.0f, 1.0f, // Apex
+
+   0.5f, -0.5f, -0.5f, 1.0f, 0.0f, 1.0f, // Bottom right of the base
+  -0.5f, -0.5f, -0.5f, 1.0f, 0.0f, 1.0f, // Bottom left of the base
+   0.0f,  0.5f,  0.0f, 1.0f, 0.0f, 1.0f, // Apex
+
+  -0.5f, -0.5f, -0.5f, 1.0f, 0.0f, 1.0f, // Bottom left of the base
+  -0.5f, -0.5f,  0.5f, 1.0f, 0.0f, 1.0f, // Top left of the base
+   0.0f,  0.5f,  0.0f, 1.0f, 0.0f, 1.0f, // Apex
+
+   // Left face
+   -0.5f, -0.5f, -0.5f, 1.0f, 0.0f, 1.0f, // Bottom left of the base
+   -0.5f, -0.5f,  0.5f, 1.0f, 0.0f, 1.0f, // Top left of the base
+    0.0f,  0.5f,  0.0f, 1.0f, 0.0f, 1.0f, // Apex
+
+    // Back face
+     0.5f, -0.5f, -0.5f, 1.0f, 0.0f, 1.0f, // Bottom right of the base
+    -0.5f, -0.5f, -0.5f, 1.0f, 0.0f, 1.0f, // Bottom left of the base
+     0.0f,  0.5f,  0.0f,  1.0f, 0.0f, 1.0f // Apex
+};
+
+const char* vertexShaderSource = R"(
+    #version 330 core
+    layout (location = 0) in vec3 aPos;
+
+    uniform mat4 model;
+    uniform mat4 view;
+    uniform mat4 projection;
+
+    out vec4 FragPos;
+
+    void main()
+    {
+        gl_Position = projection * view * model * vec4(aPos, 1.0);
+        FragPos = model * vec4(aPos, 1.0);
+    }
+)";
+
+const char* fragmentShaderSource = R"(
+    #version 330 core
+    in vec4 FragPos;
+
+    out vec4 FragColor;
+
+    void main()
+    {
+        FragColor = vec4(FragPos.xyz, 1.0);
+    }
+)";
+
+
+
+void processInput(GLFWwindow* window, float deltaTime) {
+    const float cameraSpeed = 2.5f * deltaTime;
+
+    // Handle mouse input to change yaw and pitch
+    double mouseX, mouseY;
+    glfwGetCursorPos(window, &mouseX, &mouseY);
+
+    const float sensitivity = 0.05f;
+    yaw += static_cast<float>(sensitivity * (mouseX - lastX));
+    pitch -= static_cast<float>(sensitivity * (lastY - mouseY));
+
+    lastX = mouseX;
+    lastY = mouseY;
+
+    // Update camera front vector
+    glm::vec3 front;
+    front.x = cos(glm::radians(yaw)) * cos(glm::radians(pitch));
+    front.y = sin(glm::radians(pitch));
+    front.z = sin(glm::radians(yaw)) * cos(glm::radians(pitch));
+    cameraFront = glm::normalize(front);
+
+    glm::vec3 right = glm::normalize(glm::cross(cameraFront, cameraUp));
+    glm::vec3 up = glm::normalize(glm::cross(right, cameraFront));
+
+    if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS)
+        cameraPos += cameraSpeed * cameraFront;
+    if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS)
+        cameraPos -= cameraSpeed * cameraFront;
+    if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS)
+        cameraPos += cameraSpeed * right;
+    if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS)
+        cameraPos -= cameraSpeed * right;
+    // cameraPos.y = 0.0f;
 }
 
-// Run program: Ctrl + F5 or Debug > Start Without Debugging menu
-// Debug program: F5 or Debug > Start Debugging menu
 
-// Tips for Getting Started: 
-//   1. Use the Solution Explorer window to add/manage files
-//   2. Use the Team Explorer window to connect to source control
-//   3. Use the Output window to see build output and other messages
-//   4. Use the Error List window to view errors
-//   5. Go to Project > Add New Item to create new code files, or Project > Add Existing Item to add existing code files to the project
-//   6. In the future, to open this project again, go to File > Open > Project and select the .sln file
+
+
+GLuint compileShader(GLenum type, const char* source)
+{
+    GLuint shader = glCreateShader(type);
+    glShaderSource(shader, 1, &source, nullptr);
+    glCompileShader(shader);
+
+    GLint success;
+    glGetShaderiv(shader, GL_COMPILE_STATUS, &success);
+    if (!success) {
+        GLchar infoLog[512];
+        glGetShaderInfoLog(shader, sizeof(infoLog), nullptr, infoLog);
+        std::cerr << "Shader compilation error: " << infoLog << std::endl;
+        // Handle error appropriately (e.g., return 0 or exit the program)
+    }
+
+    return shader;
+}
+
+
+
+int main(void)
+{
+    if (!glfwInit()) {
+        std::cerr << "Failed to initialize GLFW" << std::endl;
+        return -1;
+    }
+
+    GLFWwindow* window = glfwCreateWindow(1200, 800, "OpenGL Window", nullptr, nullptr);
+    if (!window) {
+        std::cerr << "Failed to create GLFW window" << std::endl;
+        glfwTerminate();
+        return -1;
+    }
+
+    glfwSetInputMode(window, GLFW_STICKY_KEYS, GLFW_TRUE);
+
+    glfwMakeContextCurrent(window);
+    glEnable(GL_DEPTH_TEST);
+
+
+    if (glewInit() != GLEW_OK) {
+        std::cerr << "Failed to initialize GLEW" << std::endl;
+        return -1;
+    }
+
+    GLuint VBO, VAO;
+    glGenVertexArrays(1, &VAO);
+    glGenBuffers(1, &VBO);
+
+    glBindVertexArray(VAO);
+    glBindBuffer(GL_ARRAY_BUFFER, VBO);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
+
+    // Specify the layout of the vertex data
+// Position attribute
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), (void*)0);
+    glEnableVertexAttribArray(0);
+
+    // Color attribute
+    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), (void*)(3 * sizeof(float)));
+    glEnableVertexAttribArray(1);
+    glBindBuffer(GL_ARRAY_BUFFER, 0);
+    glBindVertexArray(0);
+
+    GLuint vertexShader = compileShader(GL_VERTEX_SHADER, vertexShaderSource);
+    GLuint fragmentShader = compileShader(GL_FRAGMENT_SHADER, fragmentShaderSource);
+
+    GLuint shaderProgram = glCreateProgram();
+    glAttachShader(shaderProgram, vertexShader);
+    glAttachShader(shaderProgram, fragmentShader);
+    glLinkProgram(shaderProgram);
+
+    GLint success;
+    glGetProgramiv(shaderProgram, GL_LINK_STATUS, &success);
+    if (!success) {
+        GLchar infoLog[512];
+        glGetProgramInfoLog(shaderProgram, sizeof(infoLog), nullptr, infoLog);
+        std::cerr << "Shader program linking error: " << infoLog << std::endl;
+    }
+
+    glDeleteShader(vertexShader);
+    glDeleteShader(fragmentShader);
+
+    // Camera setup
+   // glm::vec3 cameraPos = glm::vec3(0.0f, 0.0f, 3.0f);
+    glm::vec3 cameraFront = glm::vec3(0.0f, 0.0f, -1.0f);
+    glm::vec3 cameraUp = glm::vec3(0.0f, 1.0f, 0.0f);
+
+    float deltaTime = 0.0f;  // Time between current frame and last frame
+    float lastFrame = 0.0f;   // Time of last frame
+
+    while (!glfwWindowShouldClose(window)) {
+        float currentFrame = glfwGetTime();
+        float deltaTime = currentFrame - lastFrame;
+        lastFrame = currentFrame;
+
+        glfwPollEvents();
+
+        processInput(window, deltaTime);
+
+        // Update camera front vector
+        cameraFront = glm::normalize(glm::vec3(0.0f, 0.0f, -1.0f) *
+            glm::mat3(glm::rotate(glm::mat4(1.0f), glm::radians(yaw), cameraUp) *
+                glm::rotate(glm::mat4(1.0f), glm::radians(pitch), glm::cross(cameraFront, cameraUp))));
+
+        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+        glm::mat4 model = glm::mat4(1.0f);
+        glm::mat4 view = glm::lookAt(cameraPos, cameraPos + cameraFront, cameraUp);
+        glm::mat4 projection = glm::perspective(glm::radians(45.0f), 800.0f / 600.0f, 0.1f, 100.0f);
+
+        glUseProgram(shaderProgram);
+        glUniformMatrix4fv(glGetUniformLocation(shaderProgram, "model"), 1, GL_FALSE, glm::value_ptr(model));
+        glUniformMatrix4fv(glGetUniformLocation(shaderProgram, "view"), 1, GL_FALSE, glm::value_ptr(view));
+        glUniformMatrix4fv(glGetUniformLocation(shaderProgram, "projection"), 1, GL_FALSE, glm::value_ptr(projection));
+
+        glBindVertexArray(VAO);
+        glDrawArrays(GL_TRIANGLES, 0, 12);
+        glBindVertexArray(0);
+
+        glfwSwapBuffers(window);
+    }
+    
+    /*for (int i = 0; i < sizeof(vertices) / sizeof(vertices[0]); i += 3) {
+        std::cout << vertices[i] << ", " << vertices[i + 1] << ", " << vertices[i + 2] << std::endl;
+    }*/
+    
+
+    glDeleteVertexArrays(1, &VAO);
+    glDeleteBuffers(1, &VBO);
+
+    glfwTerminate();
+
+    return 0;
+}
+
+
+
+
+
+
+
+
+
+
+
+
