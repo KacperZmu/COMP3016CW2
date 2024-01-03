@@ -1,0 +1,12 @@
+# Blender 4.0.2 MTL File: 'lowpolysword.blend'
+# www.blender.org
+
+newmtl Material
+Ns 434.400787
+Ka 0.831818 0.831818 0.831818
+Kd 0.800000 0.800000 0.800000
+Ks 0.536364 0.536364 0.536364
+Ke 0.000000 0.000000 0.000000
+Ni 1.000000
+d 1.000000
+illum 3
