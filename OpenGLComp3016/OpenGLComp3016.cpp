@@ -81,32 +81,39 @@ glm::vec3 cameraUp = glm::vec3(0.0f, 1.0f, 0.0f);
 
 const char* vertexShaderSource = R"(
     #version 330 core
-    layout (location = 0) in vec3 aPos;
+layout (location = 0) in vec3 aPos;
+layout (location = 1) in vec3 aColor; // Added color attribute
+layout (location = 2) in vec3 aNormal; // Added normal attribute
 
-    uniform mat4 model;
-    uniform mat4 view;
-    uniform mat4 projection;
+uniform mat4 model;
+uniform mat4 view;
+uniform mat4 projection;
 
-    out vec4 FragPos;
+out vec4 FragColor; // Pass color to fragment shader
 
-    void main()
+void main()
 {
-      gl_Position = projection * view * model * vec4(aPos, 1.0);
-      FragPos = model * vec4(aPos, 1.0);
-    }
+    gl_Position = projection * view * model * vec4(aPos, 1.0);
+    FragColor = vec4(aColor, 1.0); // Pass color to fragment shader
+
+    // Visualize normals (for debugging)
+    gl_Position = projection * view * model * vec4(aPos, 1.0) + vec4(aNormal * 0.1, 0.0);
+}
+
+
 )";
 
 const char* fragmentShaderSource = R"(
     #version 330 core
-in vec4 FragPos;
+in vec4 FragColor; // Received color from vertex shader
 
-out vec4 FragColor;
+out vec4 FragColorOutput;
 
 void main()
 {
-    // Use color from the model instead of the position
-    FragColor = vec4(FragPos.rgb, 1.0);
+    FragColorOutput = FragColor;
 }
+
 
 )";
 
@@ -141,6 +148,10 @@ std::vector<Vertex> loadModel(const std::string& filePath) {
         else {
             // Otherwise, assign a default color
             vertex.color = glm::vec3(1.0f, 0.0f, 0.0f);
+        }
+        if (mesh->HasNormals()) {
+            glm::vec3 normal(mesh->mNormals[i].x, mesh->mNormals[i].y, mesh->mNormals[i].z);
+            std::cout << "Normal " << i << ": " << normal.x << ", " << normal.y << ", " << normal.z << std::endl;
         }
         vertices.push_back(vertex);
     }
@@ -191,7 +202,7 @@ void processInput(GLFWwindow* window, float deltaTime) {
         cameraPos += cameraSpeed * right;
     if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS)
         cameraPos -= cameraSpeed * right;
-    // cameraPos.y = 0.0f;
+        cameraPos.y = 0.0f;
 }
 
 
@@ -244,7 +255,7 @@ int main(void)
         return -1;
     }
 
-    std::vector<Vertex> modelVertices = loadModel("H:/Comp3016/COMP3016CW2/COMP3016CW2/OpenGLComp3016/lowpolysword.obj");
+    std::vector<Vertex> modelVertices = loadModel("H:/Comp3016/COMP3016CW2/COMP3016CW2/OpenGLComp3016/lowpolysword1.obj");
 
     GLuint VBO, VAO;
     glGenVertexArrays(1, &VAO);
@@ -255,13 +266,15 @@ int main(void)
     glBufferData(GL_ARRAY_BUFFER, modelVertices.size() * sizeof(Vertex), modelVertices.data(), GL_STATIC_DRAW);
 
     // Specify the layout of the vertex data
-    // Position attribute
+ // Position attribute
     glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)offsetof(Vertex, position));
     glEnableVertexAttribArray(0);
 
     // Color attribute
     glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)offsetof(Vertex, color));
     glEnableVertexAttribArray(1);
+
+
 
     glBindBuffer(GL_ARRAY_BUFFER, 0);
     glBindVertexArray(0);
