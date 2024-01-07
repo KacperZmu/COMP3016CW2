@@ -1,4 +1,5 @@
 ﻿  OpenGLComp3016.cpp
-H:\Comp3016\COMP3016CW2\COMP3016CW2\OpenGLComp3016\OpenGLComp3016.cpp(309,28): warning C4244: 'initializing': conversion from 'double' to 'float', possible loss of data
-H:\Comp3016\COMP3016CW2\COMP3016CW2\OpenGLComp3016\OpenGLComp3016.cpp(332,57): warning C4267: 'argument': conversion from 'size_t' to 'GLsizei', possible loss of data
+H:\Comp3016\COMP3016CW2\COMP3016CW2\OpenGLComp3016\OpenGLComp3016.cpp(498,28): warning C4244: 'initializing': conversion from 'double' to 'float', possible loss of data
+H:\Comp3016\COMP3016CW2\COMP3016CW2\OpenGLComp3016\OpenGLComp3016.cpp(519,28): warning C4244: '=': conversion from 'double' to 'float', possible loss of data
+H:\Comp3016\COMP3016CW2\COMP3016CW2\OpenGLComp3016\OpenGLComp3016.cpp(530,57): warning C4267: 'argument': conversion from 'size_t' to 'GLsizei', possible loss of data
   OpenGLComp3016.vcxproj -> H:\Comp3016\COMP3016CW2\COMP3016CW2\OpenGLComp3016\x64\Debug\OpenGLComp3016.exe

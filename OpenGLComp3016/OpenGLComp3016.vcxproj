@@ -71,7 +71,7 @@
   </ImportGroup>
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
-    <LibraryPath>H:\Comp3016\COMP3016CW2\COMP3016CW2\Assimp\include\assimp;H:\Comp3016\COMP3016CW2\COMP3016CW2\GLFW\lib-static-ucrt;H:\Comp3016\COMP3016CW2\COMP3016CW2\GLFW\lib-mingw-w64;H:\Comp3016\COMP3016CW2\COMP3016CW2\GLFW\lib-vc2022;H:\Comp3016\COMP3016CW2\COMP3016CW2\GL\lib\Release\x64;$(LibraryPath)</LibraryPath>
+    <LibraryPath>H:\Comp3016\COMP3016CW2\COMP3016CW2\STB;H:\Comp3016\COMP3016CW2\COMP3016CW2\Assimp\include\assimp;H:\Comp3016\COMP3016CW2\COMP3016CW2\GLFW\lib-static-ucrt;H:\Comp3016\COMP3016CW2\COMP3016CW2\GLFW\lib-mingw-w64;H:\Comp3016\COMP3016CW2\COMP3016CW2\GLFW\lib-vc2022;H:\Comp3016\COMP3016CW2\COMP3016CW2\GL\lib\Release\x64;$(LibraryPath)</LibraryPath>
     <IncludePath>H:\Comp3016\COMP3016CW2\COMP3016CW2\Assimp\include;H:\Comp3016\COMP3016CW2\COMP3016CW2\GLFW\include;H:\Comp3016\COMP3016CW2\COMP3016CW2\GL\include;$(IncludePath)</IncludePath>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
@@ -108,7 +108,7 @@
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
-      <AdditionalIncludeDirectories>H:\Comp3016\COMP3016CW2\COMP3016CW2\GLFW\include;H:\Comp3016\COMP3016CW2\COMP3016CW2\GLM;H:\Comp3016\COMP3016CW2\COMP3016CW2\GL\include;H:\Comp3016\COMP3016CW2\COMP3016CW2\Assimp\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>H:\Comp3016\COMP3016CW2\COMP3016CW2\STB;H:\Comp3016\COMP3016CW2\COMP3016CW2\GLFW\include;H:\Comp3016\COMP3016CW2\COMP3016CW2\GLM;H:\Comp3016\COMP3016CW2\COMP3016CW2\GL\include;H:\Comp3016\COMP3016CW2\COMP3016CW2\Assimp\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
