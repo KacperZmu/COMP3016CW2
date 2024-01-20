@@ -11,7 +11,8 @@
 #include <vector>
 #define STB_IMAGE_IMPLEMENTATION
 #include "stb_image.h"
-
+#include "Shader.h"
+#include "ModelLoader.h" 
 using namespace std;
 
 double lastX = 400.0;
@@ -23,19 +24,20 @@ GLuint vertexShader, fragmentShader;
 glm::vec3 cameraPos = glm::vec3(0.0f, 0.0f, 3.0f);
 glm::vec3 cameraFront = glm::vec3(0.0f, 0.0f, -1.0f);
 glm::vec3 cameraUp = glm::vec3(0.0f, 1.0f, 0.0f);
-
+bool firstMouse = true;
+bool cursorLocked = true;
 
 
 
 GLfloat shapeVertices[] = {
     // Cube vertices
-    -0.5f, -0.5f, -0.5f,  // Bottom left
-     0.5f, -0.5f, -0.5f,  // Bottom right
+    -0.5f, -0.5f, -0.5f,   // Bottom left
+     0.5f, -0.5f, -0.5f,   // Bottom right
      0.5f, -0.5f,  0.5f,  // Top right
 
     -0.5f, -0.5f, -0.5f,  // Bottom left
-     0.5f, -0.5f,  0.5f,  // Top right
-    -0.5f, -0.5f,  0.5f,  // Top left
+     0.5f, -0.5f,  0.5f,   // Top right
+    -0.5f, -0.5f,  0.5f,   // Top left
 
     // Faces
     0.0f,  0.5f,  0.0f,  // Apex
@@ -81,8 +83,7 @@ GLfloat shapeVertices[] = {
    -0.5f, -0.5f, -0.5f,  // Bottom left of the base
     0.0f,  0.5f,  0.0f   // Apex
 };
-
-
+const float scaleFactor = 100.0f;
 
 const char* vertexShaderSource = R"(
     #version 330 core
@@ -108,6 +109,7 @@ const char* vertexShaderSource = R"(
 )";
 
 
+
 const char* fragmentShaderSource = R"(
     #version 330 core
     in vec3 FragPos; 
@@ -117,6 +119,9 @@ const char* fragmentShaderSource = R"(
     out vec4 FragColorOutput;
 
     uniform vec3 lightPos; 
+    uniform vec3 lightColor; // Color of the first light
+    uniform vec3 lightPos2; // Position of the second light
+    uniform vec3 lightColor2; // Color of the second light
     uniform vec3 viewPos; 
 
     void main()
@@ -125,186 +130,78 @@ const char* fragmentShaderSource = R"(
         float ambientStrength = 0.3;
         vec3 ambient = ambientStrength * Color;
 
-        // Diffuse lighting
+        // Diffuse lighting for the first light
         vec3 lightDir = normalize(lightPos - FragPos);
         float diff = max(dot(Normal, lightDir), 0.0);
-        vec3 diffuse = diff * Color;
+        vec3 diffuse = diff * lightColor;
 
-        // Specular lighting
-        float specularStrength = 0.5;
+        // Diffuse lighting for the second light
+        vec3 lightDir2 = normalize(lightPos2 - FragPos);
+        float diff2 = max(dot(Normal, lightDir2), 0.0);
+        vec3 diffuse2 = diff2 * lightColor2;
+
+        // Specular lighting for the first light
+        float specularStrength = 0.3;
         vec3 viewDir = normalize(viewPos - FragPos);
         vec3 reflectDir = reflect(-lightDir, Normal);
         float spec = pow(max(dot(viewDir, reflectDir), 0.0), 32.0);
         vec3 specular = specularStrength * spec * vec3(1.0, 1.0, 1.0);
 
-        // Final color
-        vec3 result = ambient + diffuse + specular;
+        // Specular lighting for the second light
+        vec3 reflectDir2 = reflect(-lightDir2, Normal);
+        float spec2 = pow(max(dot(viewDir, reflectDir2), 0.0), 32.0);
+        vec3 specular2 = specularStrength * spec2 * vec3(1.0, 1.0, 1.0);
+
+         
+        // Combine lighting contributions for both lights
+        vec3 result = ambient + diffuse + specular + diffuse2 + specular2;
         FragColorOutput = vec4(result, 1.0);
     }
 )";
 
+void key_callback(GLFWwindow* window, int key, int scancode, int action, int mods) {
+    if (key == GLFW_KEY_ESCAPE && action == GLFW_PRESS) {
+        cursorLocked = !cursorLocked;
 
-struct Vertex {
-    glm::vec3 position;
-    glm::vec3 color;
-};
-
-// Load OBJ model using Assimp
-std::vector<Vertex> loadOBJModel(const std::string& filePath) {
-    Assimp::Importer importer;
-    const aiScene* scene = importer.ReadFile(filePath, aiProcess_Triangulate | aiProcess_FlipUVs | aiProcess_GenNormals);
-
-    if (!scene || scene->mFlags & AI_SCENE_FLAGS_INCOMPLETE || !scene->mRootNode) {
-        std::cerr << "Assimp error: " << importer.GetErrorString() << std::endl;
-        return {};  // Return an empty vector to indicate failure
-    }
-
-    std::vector<Vertex> vertices;
-
-    
-    const aiMesh* mesh = scene->mMeshes[0];
-
-    for (unsigned int i = 0; i < mesh->mNumVertices; ++i) {
-        Vertex vertex;
-        
-        vertex.position = glm::vec3(mesh->mVertices[i].x, mesh->mVertices[i].y, mesh->mVertices[i].z);
-        if (mesh->HasVertexColors(0)) {
-            // Use vertex colors if available
-            vertex.color = glm::vec3(mesh->mColors[0][i].r, mesh->mColors[0][i].g, mesh->mColors[0][i].b);
+        if (cursorLocked) {
+            glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
         }
         else {
-            // Otherwise, assign a default color
-            vertex.color = glm::vec3(1.0f, 0.0f, 0.0f);
+            glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
         }
-        if (mesh->HasNormals()) {
-            glm::vec3 normal(mesh->mNormals[i].x, mesh->mNormals[i].y, mesh->mNormals[i].z);
-            // Handle normals
-        }
-        vertices.push_back(vertex);
     }
-
-    // Print some debug info
-    std::cout << "Number of vertices loaded (OBJ): " << vertices.size() << std::endl;
-
-    // Output the first few vertices
-    for (int i = 0; i < std::min(5, static_cast<int>(vertices.size())); ++i) {
-        std::cout << "Vertex " << i << ": " << vertices[i].position.x << ", "
-            << vertices[i].position.y << ", " << vertices[i].position.z << std::endl;
-    }
-
-    return vertices;
 }
 
-// Load FBX model using Assimp
-std::vector<Vertex> loadFBXModel(const std::string& filePath) {
-    Assimp::Importer importer;
-    const aiScene* scene = importer.ReadFile(filePath, aiProcess_Triangulate | aiProcess_FlipUVs | aiProcess_GenNormals);
-
-    if (!scene || scene->mFlags & AI_SCENE_FLAGS_INCOMPLETE || !scene->mRootNode) {
-        std::cerr << "Assimp error: " << importer.GetErrorString() << std::endl;
-        return {};  // Return an empty vector to indicate failure
+void mouse_callback(GLFWwindow* window, double xpos, double ypos) {
+    if (firstMouse) {
+        lastX = xpos;
+        lastY = ypos;
+        firstMouse = false;
     }
 
-    std::vector<Vertex> vertices;
+    double xOffset = xpos - lastX;
+    double yOffset = lastY - ypos;
 
-    
-    const aiMesh* mesh = scene->mMeshes[0];
+    lastX = xpos;
+    lastY = ypos;
 
-    for (unsigned int i = 0; i < mesh->mNumVertices; ++i) {
-        Vertex vertex;
-        
-        vertex.position = glm::vec3(mesh->mVertices[i].x, mesh->mVertices[i].y, mesh->mVertices[i].z);
-        if (mesh->HasVertexColors(0)) {
-            // Use vertex colors if available
-            vertex.color = glm::vec3(mesh->mColors[0][i].r, mesh->mColors[0][i].g, mesh->mColors[0][i].b);
-        }
-        else {
-            // Otherwise, assign a default color
-            vertex.color = glm::vec3(1.0f, 0.0f, 0.0f);
-        }
-        if (mesh->HasNormals()) {
-            glm::vec3 normal(mesh->mNormals[i].x, mesh->mNormals[i].y, mesh->mNormals[i].z);
-            // Handle normal
-        }
-        vertices.push_back(vertex);
-    }
+    const float sensitivity = 0.05f;
+    xOffset *= sensitivity;
+    yOffset *= sensitivity;
 
-    // Print some debug inf
-    std::cout << "Number of vertices loaded (FBX): " << vertices.size() << std::endl;
+    yaw += static_cast<float>(xOffset);
+    pitch += static_cast<float>(yOffset);
 
-    // Output the first few vertices
-    for (int i = 0; i < std::min(5, static_cast<int>(vertices.size())); ++i) {
-        std::cout << "Vertex " << i << ": " << vertices[i].position.x << ", "
-            << vertices[i].position.y << ", " << vertices[i].position.z << std::endl;
-    }
+    // Clamp pitch to avoid flipping
+    pitch = glm::clamp(pitch, -89.0f, 89.0f);
 
-    for (auto& vertex : vertices) {
-        // Translate 5.0f units to the right and 5.0f units behind
-        vertex.position.x += 10.0f;
-        vertex.position.z -= 5.0f;
-
-    }
-
-    return vertices;
+    // Update camera front vector
+    glm::vec3 front;
+    front.x = cos(glm::radians(yaw)) * cos(glm::radians(pitch));
+    front.y = sin(glm::radians(pitch));
+    front.z = sin(glm::radians(yaw)) * cos(glm::radians(pitch));
+    cameraFront = glm::normalize(front);
 }
-
-
-// Load DAE model using Assimp
-std::vector<Vertex> loadDAEModel(const std::string& filePath) {
-    Assimp::Importer importer;
-    const aiScene* scene = importer.ReadFile(filePath, aiProcess_Triangulate | aiProcess_FlipUVs | aiProcess_GenNormals);
-
-    if (!scene || scene->mFlags & AI_SCENE_FLAGS_INCOMPLETE || !scene->mRootNode) {
-        std::cerr << "Assimp error: " << importer.GetErrorString() << std::endl;
-        return {};  // Return an empty vector to indicate failure
-    }
-
-    std::vector<Vertex> vertices;
-
-   
-    const aiMesh* mesh = scene->mMeshes[0];
-
-    for (unsigned int i = 0; i < mesh->mNumVertices; ++i) {
-        Vertex vertex;
-        
-        vertex.position = glm::vec3(mesh->mVertices[i].x, mesh->mVertices[i].y, mesh->mVertices[i].z);
-        if (mesh->HasVertexColors(0)) {
-            // Use vertex colors if available
-            vertex.color = glm::vec3(mesh->mColors[0][i].r, mesh->mColors[0][i].g, mesh->mColors[0][i].b);
-        }
-        else {
-            // Otherwise, assign a default color
-            vertex.color = glm::vec3(1.0f, 0.0f, 0.0f);
-        }
-        if (mesh->HasNormals()) {
-            // Handle normals
-            glm::vec3 normal(mesh->mNormals[i].x, mesh->mNormals[i].y, mesh->mNormals[i].z);
-            
-        }
-        vertices.push_back(vertex);
-    }
-    for (auto& vertex : vertices) {
-        // Move the DAE model 6.0f units back
-        vertex.position.z -= 6.0f;
-    }
-
-    // Print some debug information
-    std::cout << "Number of vertices loaded (DAE): " << vertices.size() << std::endl;
-
-    // Output the first few vertices
-    for (int i = 0; i < std::min(5, static_cast<int>(vertices.size())); ++i) {
-        std::cout << "Vertex " << i << ": " << vertices[i].position.x << ", "
-            << vertices[i].position.y << ", " << vertices[i].position.z << std::endl;
-    }
-
-
-
-    return vertices;
-}
-
-
-
-
 void processInput(GLFWwindow* window, float deltaTime) {
     const float cameraSpeed = 2.5f * deltaTime;
 
@@ -314,17 +211,22 @@ void processInput(GLFWwindow* window, float deltaTime) {
 
     const float sensitivity = 0.05f;
     yaw += static_cast<float>(sensitivity * (mouseX - lastX));
-    pitch -= static_cast<float>(sensitivity * (lastY - mouseY));
+    pitch += static_cast<float>(sensitivity * (lastY - mouseY));
+
+    // Clamp pitch to avoid flipping
+    pitch = glm::clamp(pitch, -89.0f, 89.0f);
 
     lastX = mouseX;
     lastY = mouseY;
 
     // Update camera front vector
+ 
     glm::vec3 front;
     front.x = cos(glm::radians(yaw)) * cos(glm::radians(pitch));
     front.y = sin(glm::radians(pitch));
     front.z = sin(glm::radians(yaw)) * cos(glm::radians(pitch));
     cameraFront = glm::normalize(front);
+
 
     glm::vec3 right = glm::normalize(glm::cross(cameraFront, cameraUp));
     glm::vec3 up = glm::normalize(glm::cross(right, cameraFront));
@@ -340,32 +242,6 @@ void processInput(GLFWwindow* window, float deltaTime) {
     cameraPos.y = 0.0f;
 }
 
-
-
-
-GLuint compileShader(GLenum type, const char* source, const char* shaderType)
-{
-    GLuint shader = glCreateShader(type);
-    glShaderSource(shader, 1, &source, nullptr);
-    glCompileShader(shader);
-
-    // Check for shader compilation errors
-    GLint success;
-    glGetShaderiv(shader, GL_COMPILE_STATUS, &success);
-    if (!success) {
-        GLchar infoLog[512];
-        glGetShaderInfoLog(shader, sizeof(infoLog), nullptr, infoLog);
-        std::cerr << "Shader compilation error (" << shaderType << "): " << infoLog << std::endl;
-        // Handle the error appropriately
-    }
-
-    return shader;
-}
-
-
-
-
-
 int main(void)
 {
     if (!glfwInit()) {
@@ -373,15 +249,17 @@ int main(void)
         return -1;
     }
 
-    GLFWwindow* window = glfwCreateWindow(1200, 800, "OpenGL Window", nullptr, nullptr);
+    GLFWwindow* window = glfwCreateWindow(1200, 800, "OpenGL Model Loading", nullptr, nullptr);
     if (!window) {
         std::cerr << "Failed to create GLFW window" << std::endl;
         glfwTerminate();
         return -1;
     }
 
+    glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
     glfwSetInputMode(window, GLFW_STICKY_KEYS, GLFW_TRUE);
-
+    glfwSetCursorPosCallback(window, mouse_callback);
+    glfwSetKeyCallback(window, key_callback);
     glfwMakeContextCurrent(window);
     glEnable(GL_DEPTH_TEST);
 
@@ -389,10 +267,24 @@ int main(void)
         std::cerr << "Failed to initialize GLEW" << std::endl;
         return -1;
     }
+    for (int i = 0; i < sizeof(shapeVertices) / sizeof(shapeVertices[0]); ++i) {
+        if (i % 3 == 0) {  // X-coordinate
+            shapeVertices[i] *= scaleFactor;
+        }
+        else if (i % 3 == 1) {  // Y-coordinate
+            shapeVertices[i] *= scaleFactor;
+        }
+        else if (i % 3 == 2) {  // Z-coordinate
+            shapeVertices[i] *= scaleFactor;
+        }
+    }
+    
 
-    std::vector<Vertex> OBJVertices = loadOBJModel("H:/Comp3016/COMP3016CW2/COMP3016CW2/OpenGLComp3016/lowpolysword1.obj");
-    std::vector<Vertex> FBXVertices = loadFBXModel("H:/Comp3016/COMP3016CW2/COMP3016CW2/OpenGLComp3016/Shape11.fbx");
-    std::vector<Vertex> DAEVertices = loadDAEModel("H:/Comp3016/COMP3016CW2/COMP3016CW2/OpenGLComp3016/Signa.dae");
+    Shader shader(vertexShaderSource, fragmentShaderSource);
+    shader.use();
+    std::vector<Vertex> OBJVertices = ModelLoader::loadOBJModel("C:/Users/Public/OpenGL/lowpolysword1.obj");
+    std::vector<Vertex> FBXVertices = ModelLoader::loadFBXModel("C:/Users/Public/OpenGL/Shape1.fbx");
+    std::vector<Vertex> DAEVertices = ModelLoader::loadDAEModel("C:/Users/Public/OpenGL/Signa.dae");
 
 
     std::vector<Vertex> modelVertices;
@@ -405,9 +297,6 @@ int main(void)
 
     // Append DAE vertices to the combined modelVertices vector
     modelVertices.insert(modelVertices.end(), DAEVertices.begin(), DAEVertices.end());
-
-
-
 
     GLuint VBO, VAO;
     glGenVertexArrays(1, &VAO);
@@ -434,11 +323,8 @@ int main(void)
     glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(GLfloat), (void*)(3 * sizeof(GLfloat)));
     glEnableVertexAttribArray(1);
 
-
     glBindBuffer(GL_ARRAY_BUFFER, 0);
     glBindVertexArray(0);
-
-
 
     GLuint CubeVBO, CubeVAO;
     glGenVertexArrays(1, &CubeVAO);
@@ -448,7 +334,6 @@ int main(void)
     glBindBuffer(GL_ARRAY_BUFFER, CubeVBO);
     glBufferData(GL_ARRAY_BUFFER, sizeof(shapeVertices), shapeVertices, GL_STATIC_DRAW);
 
-    // Specify the layout of the vertex data
     // Position attribute
     glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(GLfloat), (GLvoid*)0);
     glEnableVertexAttribArray(0);
@@ -456,7 +341,6 @@ int main(void)
     glBindBuffer(GL_ARRAY_BUFFER, 0);
     glBindVertexArray(0);
 
-    // Specify the layout of the shape vertex data
     glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(GLfloat), (void*)0);
     glEnableVertexAttribArray(0);
 
@@ -467,13 +351,9 @@ int main(void)
     glBindBuffer(GL_ARRAY_BUFFER, 0);
     glBindVertexArray(0);
 
-    GLuint vertexShader, fragmentShader;
-    vertexShader = compileShader(GL_VERTEX_SHADER, vertexShaderSource, "VERTEX");
-    fragmentShader = compileShader(GL_FRAGMENT_SHADER, fragmentShaderSource, "FRAGMENT");
+    
+    GLuint shaderProgram = shader.getProgramID();
 
-    GLuint shaderProgram = glCreateProgram();
-    glAttachShader(shaderProgram, vertexShader);
-    glAttachShader(shaderProgram, fragmentShader);
     glLinkProgram(shaderProgram);
 
     // Check for shader program linking errors
@@ -493,6 +373,8 @@ int main(void)
     float deltaTime = 0.0f;  // Time between current frame and last frame
     float lastFrame = 0.0f;   // Time of last frame
     float lightHeight = 1.0f; // Initial height of the light source
+    float rotationSpeed = 15.0f; // Adjust the speed of rotation
+
 
     while (!glfwWindowShouldClose(window)) {
         float currentFrame = glfwGetTime();
@@ -501,6 +383,7 @@ int main(void)
 
         glfwPollEvents();
         processInput(window, deltaTime);
+        float rotationAngle = currentFrame * rotationSpeed;
 
         cameraFront = glm::normalize(glm::vec3(0.0f, 0.0f, -1.0f) *
             glm::mat3(glm::rotate(glm::mat4(1.0f), glm::radians(yaw), cameraUp) *
@@ -508,19 +391,31 @@ int main(void)
 
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);  // Clear color and depth buffers
 
-        glm::mat4 model = glm::mat4(1.0f);
+        glm::mat4 model = glm::rotate(glm::mat4(1.0f), glm::radians(rotationAngle), glm::vec3(0.0f, 1.0f, 0.0f));
         glm::mat4 view = glm::lookAt(cameraPos, cameraPos + cameraFront, cameraUp);
         glm::mat4 projection = glm::perspective(glm::radians(45.0f), 800.0f / 600.0f, 0.1f, 100.0f);
 
         glUseProgram(shaderProgram);
 
         // Update light position
-        float lightSpeed = 1.0f; // Adjust the speed of light movement
+        float lightSpeed = 3.0f; // Adjust the speed of light movement
         lightHeight = 1.0f + sin(glfwGetTime() * lightSpeed) * 3.0f; // Adjust the amplitude of light movement
-        glm::vec3 lightPos = glm::vec3(1.0f, lightHeight, 2.0f); // Set the light position
+        // Update light positions and colors
+        glm::vec3 lightPos = glm::vec3(1.0f, lightHeight, 2.0f);
+        glm::vec3 lightColor = glm::vec3(0.5f, 0.5f, 0.5f); // White light
 
+        float lightSpeed2 = 3.0f; // Adjust the speed of light2 movement
+        float lightPos2X = 5.0f + cos(glfwGetTime() * lightSpeed2) * 3.0f; // Adjust the amplitude of light2 movement
+        glm::vec3 lightPos2 = glm::vec3(lightPos2X, lightHeight, 1.0f);
+        glm::vec3 lightColor2 = glm::vec3(0.0f, 0.08f, 0.0f); // Green light
+
+        // Set light 1 properties
         glUniform3f(glGetUniformLocation(shaderProgram, "lightPos"), lightPos.x, lightPos.y, lightPos.z);
-        glUniform3f(glGetUniformLocation(shaderProgram, "viewPos"), cameraPos.x, cameraPos.y, cameraPos.z);
+        glUniform3f(glGetUniformLocation(shaderProgram, "lightColor"), lightColor.x, lightColor.y, lightColor.z);
+
+        // Set light 2 properties
+        glUniform3f(glGetUniformLocation(shaderProgram, "lightPos2"), lightPos2.x, lightPos2.y, lightPos2.z);
+        glUniform3f(glGetUniformLocation(shaderProgram, "lightColor2"), lightColor2.x, lightColor2.y, lightColor2.z);
 
         glUniformMatrix4fv(glGetUniformLocation(shaderProgram, "model"), 1, GL_FALSE, glm::value_ptr(model));
         glUniformMatrix4fv(glGetUniformLocation(shaderProgram, "view"), 1, GL_FALSE, glm::value_ptr(view));
@@ -529,8 +424,6 @@ int main(void)
         glBindVertexArray(VAO);
         glDrawArrays(GL_TRIANGLES, 0, modelVertices.size());
         glBindVertexArray(0);
-
-        glUseProgram(shaderProgram); // Use the same shader program as before
 
         // Adjust the translation values 
         glm::mat4 modelCube = glm::translate(glm::mat4(1.0f), glm::vec3(-3.0f, 0.0f, 0.0f));
@@ -546,13 +439,6 @@ int main(void)
 
         glfwSwapBuffers(window);
     }
-
-
-    /*for (int i = 0; i < sizeof(vertices) / sizeof(vertices[0]); i += 3) {
-        std::cout << vertices[i] << ", " << vertices[i + 1] << ", " << vertices[i + 2] << std::endl;
-    }*/
-
-
     glDeleteVertexArrays(1, &VAO);
     glDeleteBuffers(1, &VBO);
 

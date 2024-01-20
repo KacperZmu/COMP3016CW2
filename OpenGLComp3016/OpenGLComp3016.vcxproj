@@ -71,8 +71,8 @@
   </ImportGroup>
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
-    <LibraryPath>H:\Comp3016\COMP3016CW2\COMP3016CW2\STB;H:\Comp3016\COMP3016CW2\COMP3016CW2\Assimp\include\assimp;H:\Comp3016\COMP3016CW2\COMP3016CW2\GLFW\lib-static-ucrt;H:\Comp3016\COMP3016CW2\COMP3016CW2\GLFW\lib-mingw-w64;H:\Comp3016\COMP3016CW2\COMP3016CW2\GLFW\lib-vc2022;H:\Comp3016\COMP3016CW2\COMP3016CW2\GL\lib\Release\x64;$(LibraryPath)</LibraryPath>
-    <IncludePath>H:\Comp3016\COMP3016CW2\COMP3016CW2\Assimp\include;H:\Comp3016\COMP3016CW2\COMP3016CW2\GLFW\include;H:\Comp3016\COMP3016CW2\COMP3016CW2\GL\include;$(IncludePath)</IncludePath>
+    <LibraryPath>C:\Users\Public\OpenGL\STB;C:\Users\Public\OpenGL\Assimp\include\assimp;C:\Users\Public\OpenGL\GLFW\lib-vc2022;C:\Users\Public\OpenGL\GLFW\lib-static-ucrt;C:\Users\Public\OpenGL\GLFW\lib-mingw-w64;C:\Users\Public\OpenGL\GL\lib\Release\x64;$(LibraryPath)</LibraryPath>
+    <IncludePath>C:\Users\Public\OpenGL\Assimp\include;C:\Users\Public\OpenGL\GLFW\include;C:\Users\Public\OpenGL\GL\include;$(IncludePath)</IncludePath>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>
@@ -108,12 +108,13 @@
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
-      <AdditionalIncludeDirectories>H:\Comp3016\COMP3016CW2\COMP3016CW2\STB;H:\Comp3016\COMP3016CW2\COMP3016CW2\GLFW\include;H:\Comp3016\COMP3016CW2\COMP3016CW2\GLM;H:\Comp3016\COMP3016CW2\COMP3016CW2\GL\include;H:\Comp3016\COMP3016CW2\COMP3016CW2\Assimp\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>C:\Users\Public\OpenGL\STB;C:\Users\Public\OpenGL\GLFW\include;C:\Users\Public\OpenGL\GLM;C:\Users\Public\OpenGL\GL\include;C:\Users\Public\OpenGL\Assimp\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalOptions>/FS</AdditionalOptions>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalLibraryDirectories>H:\Comp3016\COMP3016CW2\COMP3016CW2\GLFW\lib-static-ucrt;H:\Comp3016\COMP3016CW2\COMP3016CW2\GLFW\lib-mingw-w64;H:\Comp3016\COMP3016CW2\COMP3016CW2\GLFW\lib-vc2022;H:\Comp3016\COMP3016CW2\COMP3016CW2\GL\lib\Release\x64;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalLibraryDirectories>C:\Users\Public\OpenGL\GLFW\lib-vc2022;C:\Users\Public\OpenGL\GLFW\lib-static-ucrt;C:\Users\Public\OpenGL\GLFW\lib-mingw-w64;C:\Users\Public\OpenGL\GL\lib\Release\x64;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <AdditionalDependencies>opengl32.lib;glew32s.lib;glew32.lib;glfw3.lib;assimp-vc142-mt.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
@@ -134,11 +135,13 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="ModelLoader.cpp" />
     <ClCompile Include="OpenGLComp3016.cpp" />
+    <ClCompile Include="Shader.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <Text Include="fragmentShader.glsl.txt" />
-    <Text Include="vertexShader.glsl.txt" />
+    <ClInclude Include="ModelLoader.h" />
+    <ClInclude Include="Shader.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
