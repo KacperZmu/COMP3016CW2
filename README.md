@@ -3,6 +3,7 @@
 
 ### This is a C++ OpenGL 4 project, loading modles of different file types which use vertex paint. This program loads 3 various models, an OBJ, FBX, and a DAE. These models use vertex paint. OBJ loads in the center, the others around it, their vertices are then combined. a timed animation of roation is applied, showcasing the OBJ sword, while the others roatate around it. a dynamic white light pulses up and down while a green flows left to right. 
 ### Given the oportunity, I would like to add a way to load in and replace models at run time to add to the program, and get it to where i wanted it to be.
+### I started with nothing, from scratch, went through learnopengl.com to learn and find out how to go about my project, for inspiration and knowledge.
 
 ## Controls
 ### The program uses basic WASD movement, W for forward, A for left, D for right and S for back, along with mouse camera controls.
