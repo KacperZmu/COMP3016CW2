@@ -4,7 +4,7 @@
 ### This is a C++ OpenGL 4 project, loading modles of different file types which use vertex paint. This program loads 3 various models, an OBJ, FBX, and a DAE. These models use vertex paint. OBJ loads in the center, the others around it, their vertices are then combined. a timed animation of roation is applied, showcasing the OBJ sword, while the others roatate around it. a dynamic white light pulses up and down while a green flows left to right. 
 ### Given the oportunity, I would like to add a way to load in and replace models at run time to add to the program, and get it to where i wanted it to be.
 
-##Controls
+## Controls
 ### The program uses basic WASD movement, W for forward, A for left, D for right and S for back, along with mouse camera controls.
 
 ## Exe
@@ -29,7 +29,7 @@
 ### what makes the project stand out is the way it displays the models. three models are loaded, OBJ in the middle, other 2 around it. their vertices are then combined. this allows for a timed animation of spinning around the OBJ, showcasing the models. should another model be made with vertex paint, just adjust the path within the code to display and showcase.
 ### secondly is the lighting. there are 2 sets of dynamic lights that look like they fade in and out. a white light and a gree. these lights are placed in different places, with the white light moving up and down and the green moving left to right. first comes in the white light shocasing the models vertex colours, which are then overlapped by the green light.
 
-##Dependecies
+## Dependecies
 - GLFW
 - GLEW
 - GLM
@@ -47,7 +47,7 @@
 - [Learn OpenGL](https://learnopengl.com/)
 - [glProgramming](https://www.glprogramming.com/red/chapter05.html)
 - [Assimp](https://assimp-docs.readthedocs.io/en/latest/)
-###next are a few for Procedural generation which is something i would have like to include to generate a terrain for my program if I had the time.
+### next are a few for Procedural generation which is something i would have like to include to generate a terrain for my program if I had the time.
 - [OpenGL-Notes](https://opengl-notes.readthedocs.io/en/latest/topics/complex-objects/procedural-generation.html)
 - [Noise](https://www.omardelarosa.com/posts/2020/01/06/infinity-terrain-in-c++-using-perlin-noise-and-opengl)
 
