@@ -86,7 +86,7 @@ GLfloat shapeVertices[] = {
 const float scaleFactor = 100.0f;
 
 const char* vertexShaderSource = R"(
-    #version 330 core
+    #version 400 core
     layout (location = 0) in vec3 aPos;
     layout (location = 1) in vec3 aColor;
     layout (location = 2) in vec3 aNormal; 
@@ -100,10 +100,14 @@ const char* vertexShaderSource = R"(
     out vec3 Color; // Pass color to fragment shader
 
     void main()
-    {
+    {    
+        // Transform vertex pos
         gl_Position = projection * view * model * vec4(aPos, 1.0);
+        // tranform to world space
         FragPos = vec3(model * vec4(aPos, 1.0));
+        // Transform normals to world and pass to frag
         Normal = mat3(transpose(inverse(model))) * aNormal;
+        //pass colour to frag
         Color = aColor;
     }
 )";
@@ -111,15 +115,15 @@ const char* vertexShaderSource = R"(
 
 
 const char* fragmentShaderSource = R"(
-    #version 330 core
-    in vec3 FragPos; 
-    in vec3 Normal; 
-    in vec3 Color; 
+    #version 400 core
+    in vec3 FragPos; //position from vertex shader
+    in vec3 Normal; //normals from vertex
+    in vec3 Color; //colour from vertex
 
     out vec4 FragColorOutput;
 
-    uniform vec3 lightPos; 
-    uniform vec3 lightColor; // Color of the first light
+    uniform vec3 lightPos; // Position of first light
+    uniform vec3 lightColor; // Color of first light
     uniform vec3 lightPos2; // Position of the second light
     uniform vec3 lightColor2; // Color of the second light
     uniform vec3 viewPos; 
@@ -161,7 +165,7 @@ const char* fragmentShaderSource = R"(
 
 void key_callback(GLFWwindow* window, int key, int scancode, int action, int mods) {
     if (key == GLFW_KEY_ESCAPE && action == GLFW_PRESS) {
-        cursorLocked = !cursorLocked;
+        cursorLocked = !cursorLocked;// toggle cursor lock
 
         if (cursorLocked) {
             glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
@@ -174,28 +178,32 @@ void key_callback(GLFWwindow* window, int key, int scancode, int action, int mod
 
 void mouse_callback(GLFWwindow* window, double xpos, double ypos) {
     if (firstMouse) {
+        //initialise last mouse pos
         lastX = xpos;
         lastY = ypos;
         firstMouse = false;
     }
-
+    // calc offset of mouse
     double xOffset = xpos - lastX;
     double yOffset = lastY - ypos;
 
+    //update last mouse pos
     lastX = xpos;
     lastY = ypos;
 
+    // sensitivity for mouse and scale offset by sens
     const float sensitivity = 0.05f;
     xOffset *= sensitivity;
     yOffset *= sensitivity;
 
+    // update yaw and pitch based on mouse movement
     yaw += static_cast<float>(xOffset);
     pitch += static_cast<float>(yOffset);
 
     // Clamp pitch to avoid flipping
     pitch = glm::clamp(pitch, -89.0f, 89.0f);
 
-    // Update camera front vector
+    // Update camera front vector based on yaw and pitch
     glm::vec3 front;
     front.x = cos(glm::radians(yaw)) * cos(glm::radians(pitch));
     front.y = sin(glm::radians(pitch));
@@ -227,10 +235,11 @@ void processInput(GLFWwindow* window, float deltaTime) {
     front.z = sin(glm::radians(yaw)) * cos(glm::radians(pitch));
     cameraFront = glm::normalize(front);
 
-
+    //calculate up and right camera vectors
     glm::vec3 right = glm::normalize(glm::cross(cameraFront, cameraUp));
     glm::vec3 up = glm::normalize(glm::cross(right, cameraFront));
 
+    //keyboard inputs
     if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS)
         cameraPos += cameraSpeed * cameraFront;
     if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS)
@@ -239,23 +248,25 @@ void processInput(GLFWwindow* window, float deltaTime) {
         cameraPos += cameraSpeed * right;
     if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS)
         cameraPos -= cameraSpeed * right;
+    //keep camera at constant height
     cameraPos.y = 0.0f;
 }
 
 int main(void)
 {
+    //init GLFW
     if (!glfwInit()) {
         std::cerr << "Failed to initialize GLFW" << std::endl;
         return -1;
     }
-
+    //create window
     GLFWwindow* window = glfwCreateWindow(1200, 800, "OpenGL Model Loading", nullptr, nullptr);
     if (!window) {
         std::cerr << "Failed to create GLFW window" << std::endl;
         glfwTerminate();
         return -1;
     }
-
+    // set window settings
     glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
     glfwSetInputMode(window, GLFW_STICKY_KEYS, GLFW_TRUE);
     glfwSetCursorPosCallback(window, mouse_callback);
@@ -263,10 +274,12 @@ int main(void)
     glfwMakeContextCurrent(window);
     glEnable(GL_DEPTH_TEST);
 
+    //init GLEW
     if (glewInit() != GLEW_OK) {
         std::cerr << "Failed to initialize GLEW" << std::endl;
         return -1;
     }
+    // scale shapeVertices by scaleFactor
     for (int i = 0; i < sizeof(shapeVertices) / sizeof(shapeVertices[0]); ++i) {
         if (i % 3 == 0) {  // X-coordinate
             shapeVertices[i] *= scaleFactor;
@@ -279,25 +292,24 @@ int main(void)
         }
     }
     
-
+    //load shaders and create shader program
     Shader shader(vertexShaderSource, fragmentShaderSource);
     shader.use();
-    std::vector<Vertex> OBJVertices = ModelLoader::loadOBJModel("C:/Users/Public/OpenGL/lowpolysword1.obj");
-    std::vector<Vertex> FBXVertices = ModelLoader::loadFBXModel("C:/Users/Public/OpenGL/Shape1.fbx");
-    std::vector<Vertex> DAEVertices = ModelLoader::loadDAEModel("C:/Users/Public/OpenGL/Signa.dae");
 
+    //load models using ModelLoader
+    std::vector<Vertex> OBJVertices = ModelLoader::loadOBJModel("../lowpolysword1.obj");
+    std::vector<Vertex> FBXVertices = ModelLoader::loadFBXModel("../Shape1.fbx");
+    std::vector<Vertex> DAEVertices = ModelLoader::loadDAEModel("../Signa.dae");
 
+    
     std::vector<Vertex> modelVertices;
 
-    // Append OBJ vertices to the combined modelVertices vector
+    // combine vertices of all models
     modelVertices.insert(modelVertices.end(), OBJVertices.begin(), OBJVertices.end());
-
-    // Append FBX1 vertices to the combined modelVertices vector
     modelVertices.insert(modelVertices.end(), FBXVertices.begin(), FBXVertices.end());
-
-    // Append DAE vertices to the combined modelVertices vector
     modelVertices.insert(modelVertices.end(), DAEVertices.begin(), DAEVertices.end());
 
+    //generate VAO and VBO for combined models vertices
     GLuint VBO, VAO;
     glGenVertexArrays(1, &VAO);
     glGenBuffers(1, &VBO);
@@ -326,6 +338,7 @@ int main(void)
     glBindBuffer(GL_ARRAY_BUFFER, 0);
     glBindVertexArray(0);
 
+    // same as before but for shapeVertices
     GLuint CubeVBO, CubeVAO;
     glGenVertexArrays(1, &CubeVAO);
     glGenBuffers(1, &CubeVBO);
@@ -334,7 +347,6 @@ int main(void)
     glBindBuffer(GL_ARRAY_BUFFER, CubeVBO);
     glBufferData(GL_ARRAY_BUFFER, sizeof(shapeVertices), shapeVertices, GL_STATIC_DRAW);
 
-    // Position attribute
     glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(GLfloat), (GLvoid*)0);
     glEnableVertexAttribArray(0);
 
@@ -351,21 +363,10 @@ int main(void)
     glBindBuffer(GL_ARRAY_BUFFER, 0);
     glBindVertexArray(0);
 
-    
+    //get shader ID and set shader
     GLuint shaderProgram = shader.getProgramID();
 
     glLinkProgram(shaderProgram);
-
-    // Check for shader program linking errors
-    GLint success;
-    glGetProgramiv(shaderProgram, GL_LINK_STATUS, &success);
-    if (!success) {
-        GLchar infoLog[512];
-        glGetProgramInfoLog(shaderProgram, sizeof(infoLog), nullptr, infoLog);
-        std::cerr << "Shader program linking error: " << infoLog << std::endl;
-        // Handle the error appropriately
-    }
-
 
     glDeleteShader(vertexShader);
     glDeleteShader(fragmentShader);
@@ -377,10 +378,12 @@ int main(void)
 
 
     while (!glfwWindowShouldClose(window)) {
+        //update time related variables
         float currentFrame = glfwGetTime();
         float deltaTime = currentFrame - lastFrame;
         lastFrame = currentFrame;
 
+        // poll events and process input
         glfwPollEvents();
         processInput(window, deltaTime);
         float rotationAngle = currentFrame * rotationSpeed;
@@ -388,9 +391,10 @@ int main(void)
         cameraFront = glm::normalize(glm::vec3(0.0f, 0.0f, -1.0f) *
             glm::mat3(glm::rotate(glm::mat4(1.0f), glm::radians(yaw), cameraUp) *
                 glm::rotate(glm::mat4(1.0f), glm::radians(pitch), glm::cross(cameraFront, cameraUp))));
-
+        
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);  // Clear color and depth buffers
 
+        // applies rotation, defines camera view, camrea perspective
         glm::mat4 model = glm::rotate(glm::mat4(1.0f), glm::radians(rotationAngle), glm::vec3(0.0f, 1.0f, 0.0f));
         glm::mat4 view = glm::lookAt(cameraPos, cameraPos + cameraFront, cameraUp);
         glm::mat4 projection = glm::perspective(glm::radians(45.0f), 800.0f / 600.0f, 0.1f, 100.0f);
@@ -416,11 +420,12 @@ int main(void)
         // Set light 2 properties
         glUniform3f(glGetUniformLocation(shaderProgram, "lightPos2"), lightPos2.x, lightPos2.y, lightPos2.z);
         glUniform3f(glGetUniformLocation(shaderProgram, "lightColor2"), lightColor2.x, lightColor2.y, lightColor2.z);
-
+        // set for models
         glUniformMatrix4fv(glGetUniformLocation(shaderProgram, "model"), 1, GL_FALSE, glm::value_ptr(model));
         glUniformMatrix4fv(glGetUniformLocation(shaderProgram, "view"), 1, GL_FALSE, glm::value_ptr(view));
         glUniformMatrix4fv(glGetUniformLocation(shaderProgram, "projection"), 1, GL_FALSE, glm::value_ptr(projection));
 
+        //render combined models
         glBindVertexArray(VAO);
         glDrawArrays(GL_TRIANGLES, 0, modelVertices.size());
         glBindVertexArray(0);
@@ -439,6 +444,7 @@ int main(void)
 
         glfwSwapBuffers(window);
     }
+    //cleanup
     glDeleteVertexArrays(1, &VAO);
     glDeleteBuffers(1, &VBO);
 

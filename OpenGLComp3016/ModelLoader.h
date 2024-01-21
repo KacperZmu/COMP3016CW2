@@ -4,7 +4,7 @@
 #include <glm/gtc/type_ptr.hpp>
 #include <vector>
 #include <string>
-#include "Shader.h"  // Include Shader class
+#include "Shader.h"
 
 struct Vertex {
     glm::vec3 position;

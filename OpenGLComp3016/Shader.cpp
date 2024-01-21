@@ -2,9 +2,11 @@
 #include <iostream>
 
 Shader::Shader(const char* vertexShaderSource, const char* fragmentShaderSource) {
+    //compile and get IDs for vertex and frag shaders
     vertexShader = compileShader(GL_VERTEX_SHADER, vertexShaderSource, "VERTEX");
     fragmentShader = compileShader(GL_FRAGMENT_SHADER, fragmentShaderSource, "FRAGMENT");
 
+    // create shader program, attacth shaders and link
     programID = glCreateProgram();
     glAttachShader(programID, vertexShader);
     glAttachShader(programID, fragmentShader);
@@ -13,7 +15,7 @@ Shader::Shader(const char* vertexShaderSource, const char* fragmentShaderSource)
     checkShaderLinking();
 }
 
-Shader::~Shader() {
+Shader::~Shader() { // destructors, deletes shaders to free resources
     glDeleteShader(vertexShader);
     glDeleteShader(fragmentShader);
     glDeleteProgram(programID);
@@ -32,16 +34,7 @@ GLuint Shader::compileShader(GLenum type, const char* source, const char* shader
         GLuint shader = glCreateShader(type);
         glShaderSource(shader, 1, &source, nullptr);
         glCompileShader(shader);
-        
-        GLint success;
-        glGetShaderiv(shader, GL_COMPILE_STATUS, &success);
-        if (!success) {
-            GLchar infoLog[512];
-            glGetShaderInfoLog(shader, sizeof(infoLog), nullptr, infoLog);
-            std::cerr << "Shader compilation error (" << shaderType << "): " << infoLog << std::endl;
-            // Handle the error appropriately
-        }
-
+       
         return shader;
     }
 }
